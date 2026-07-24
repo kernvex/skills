@@ -54,8 +54,12 @@ das Haus:::the house
 ## You emit a payload; `lingo draft` writes it
 
 Never hand-write notes into the vault. Build a JSON payload and run the command —
-it guarantees the format, skips a card whose Concept already has a live Word
-(dedup), and refuses to overwrite an existing Draft (unless `--force`).
+it guarantees the format and refuses to overwrite anything (unless `--force`). The
+**Concept is the dedup key** everywhere, so a card is skipped when that Concept
+already has a live Word (`skipped-live`) *or* already has a Draft in `_review/` —
+even under a different word title, and even from earlier in the same payload
+(`skipped-drafted`). Re-running an unchanged payload reports `skipped-exists`.
+Read the outcome lines: anything not `drafted` did not land.
 
 ```json
 {
@@ -81,6 +85,48 @@ bun run draft --payload /path/to/payload.json --vault "$HOME/Library/Mobile Docu
 one). `concept` must match the Concept the card links — add it to `concepts[]` if
 it isn't already live in the vault.
 
+## Relations — opposites & near-synonyms (ADR-0007)
+
+When a Concept has a natural **opposite** or **near-synonyms** (mostly adjectives —
+`big`↔`small`, `big`↔`huge`/`large`), record them so the vault can show a live
+same-language hint on the Word and a typed graph edge. A Relation links two
+**distinct Concepts** and is stored **once** (Sym-once) — never add the reverse on
+the other Concept; the vault implies it.
+
+- **"synonym" here means a *distinct near-synonym Concept*** (`big`↔`huge`), each with
+  its own Concept and Words. Two words for the *exact same* meaning are NOT a synonym
+  relation — they are just two Words on the one Concept (nothing new to do).
+- **On a NEW Concept you are drafting:** put the relation right in the `concepts[]`
+  payload entry — `opposite` (a single Concept title) and/or `synonyms` (a list, keep
+  it to ~3):
+
+  ```json
+  { "title": "big", "definition": "Large in size.", "opposite": "small", "synonyms": ["huge", "large"] }
+  ```
+
+- **On an EXISTING (live) Concept:** don't rewrite it. Run `relate`, which appends the
+  property to the live Concept (safe — Concepts carry no scheduling), dedups both
+  directions, ghost-strict drafts any missing target Concept stub into
+  `Concepts/_review/`, and reports which same-language Words are still missing:
+
+  ```bash
+  cd ~/Documents/Projects/setup/esetup/obsidian-lingo
+  bun run relate --concept big --opposite small --synonym huge,large --lang french \
+    --vault "$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/Lingo" --dry-run   # preview
+  ```
+
+  Outcomes: `related` (added), `already-related` (dedup no-op), `stub-drafted` /
+  `stub-exists` (target Concept), `opposite-conflict` (a different opposite already
+  set — it is kept, yours is rejected; pick one deliberately), `source-missing` (the
+  `--concept` isn't a live Concept yet — draft it first), and `[needs-word]` lines for
+  target Concepts with no Word yet in `--lang`.
+- **Rel-hub-and-word (current language only):** for each `[needs-word]` target, draft
+  that language's Word (e.g. `French/petit` for `small`) via the normal `concepts[]`
+  /`words[]` payload + `lingo draft`, using the target Concept's cross-references. Do
+  NOT draft target Words for other languages — those get filled when you next craft in
+  them.
+- Relations never create flashcards; they are hint/graph only.
+
 ## Mode A — from a drill transcript
 
 Pipeline (ADR-0004): capture → save raw → **clean/validate loop** → draft.
@@ -94,11 +140,32 @@ Pipeline (ADR-0004): capture → save raw → **clean/validate loop** → draft.
    language), English↔target confusion (which side is the gloss), run-on
    segmentation (one utterance split, or two merged). Flag anything uncertain and
    ask. Loop until the user says it's good.
-3. **Draft.** For each vocabulary item in the *cleaned* transcript, build a Word
-   entry (translate + supply gender/article/pos/IPA/level/example). Reuse existing
-   Concepts (check `Concepts/`); add a `concepts[]` entry for any new one. Emit the
-   payload and run `lingo draft`.
-4. Report what landed and that the user promotes by moving notes out of `_review/`.
+3. **Survey the vault.** Before drafting anything, run it once and work from the
+   result — never grep `Concepts/` by hand:
+
+   ```bash
+   cd ~/Documents/Projects/setup/esetup/obsidian-lingo
+   bun run survey --vault "$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/Lingo"
+   ```
+
+   One JSON payload, read-only, listing every Concept with:
+   - `key` — the dedup key. Match against this; never lowercase/trim it yourself.
+   - `status` — `live`, or `draft` for a hub sitting in `Concepts/_review/` (usually
+     a `relate` stub). A `draft` hub **already exists**: link it, and do NOT put it
+     in `concepts[]`, or `draft` will answer `skipped-exists` and drop your definition.
+   - `coveredBy` — language codes with a live Word. If your target code is listed,
+     that card is already made; skip it.
+   - `crossRefs` — every language's existing Word with gender/IPA/example. Use these
+     to fix the sense and register, exactly as Mode B uses the Manifest's.
+   - `opposite` / `synonyms` — existing Relations, so you don't re-add one.
+
+   Read the whole Concept list before inventing anything: the hub may name the
+   meaning differently than the utterance suggests (`home` vs `house`).
+4. **Draft.** For each vocabulary item in the *cleaned* transcript, build a Word
+   entry (translate + supply gender/article/pos/IPA/level/example). Reuse a Concept
+   from the Survey; add a `concepts[]` entry only for one the Survey doesn't list at
+   all. Emit the payload and run `lingo draft`.
+5. Report what landed and that the user promotes by moving notes out of `_review/`.
 
 ## Mode B — from an add-language manifest
 
@@ -119,7 +186,9 @@ wrote `<Name>/_review/_manifest.json`. Draft its requests.
 ## Rules
 
 - Work in batches you can eyeball; accuracy over volume.
-- Search `Concepts/` before inventing a Concept.
+- Run `lingo survey` before inventing a Concept — it is the one source for what
+  exists. Grepping `Concepts/` is a second, informal answer that can disagree with
+  the one `draft` enforces.
 - Write only into `_review/`; never edit or promote a live card.
 - Leave a genuinely unknown field blank rather than guess wrong — the user fills it
   during review.
