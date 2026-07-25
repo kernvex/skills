@@ -1,0 +1,3 @@
+interface:
+  display_name: "Dependency Source"
+  short_description: "Check out a dependency's source at the version in use"
