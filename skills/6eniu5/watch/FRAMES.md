@@ -17,14 +17,14 @@ yt-dlp -f "bv*[height<=720]/b[height<=720]/b" -P ~/.cache/watch/<id> -o "video.%
 ```bash
 mkdir -p ~/.cache/watch/<id>/frames
 ffmpeg -i ~/.cache/watch/<id>/video.* \
-  -vf "select='gt(scene,0.3)',scale=512:-2" -fps_mode vfr \
+  -vf "select='gt(scene,0.3)',mpdecimate,scale=512:-2" -fps_mode vfr \
   ~/.cache/watch/<id>/frames/%03d.jpg
 ```
 
 Calibrate to land between ~10 and 100 frames:
 
 - Over 100 (busy footage): raise the threshold to `0.4`.
-- Under ~10 (static screencast): fall back to interval sampling — `-vf "fps=1/10,scale=512:-2"` — and cap at 100 frames.
+- Under ~10 (static screencast): fall back to interval sampling — `-vf "fps=1/10,mpdecimate,scale=512:-2"` — and cap at 100 frames. `mpdecimate` drops near-identical neighbours either way, so a slide held for a minute costs one frame, not six.
 
 ## 3. Read them
 

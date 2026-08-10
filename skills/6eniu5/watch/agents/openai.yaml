@@ -1,3 +1,3 @@
 interface:
   display_name: "Watch"
-  short_description: "Watch a YouTube/Loom video via its transcript"
+  short_description: "Watch a YouTube/Loom video or local file via its transcript"

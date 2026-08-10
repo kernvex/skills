@@ -2,6 +2,8 @@
 
 Loom's public GraphQL endpoint serves transcripts for link-shared videos — no auth, no download, no dependencies beyond curl. English only.
 
+The `45a5bd4` client-version token in the headers is a snapshot of Loom's web client and will eventually go stale. If these requests start failing, refresh it: load any loom.com share page and copy the current `apollographql-client-version` from its network requests.
+
 ## 1. Metadata (title, author, date)
 
 ```bash

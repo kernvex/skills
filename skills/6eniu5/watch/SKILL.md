@@ -27,8 +27,8 @@ Bring a video's spoken content into context and work with it there. Transcript-f
 
 3. **Fetch the Auto Transcript** into `~/.cache/watch/<id>/`, by source:
    - **Loom** — the dependency-free GraphQL recipe in [LOOM.md](LOOM.md).
-   - **YouTube** — `yt-dlp --skip-download --write-subs --write-auto-subs --sub-langs "en.*" --sub-format vtt -P ~/.cache/watch/<id> -o transcript <url>`. Manual subs beat auto subs when both land.
-   - **No captions, or local file** — obtain audio (`yt-dlp -x -P ~/.cache/watch/<id> -o audio <url>`; a local file is used as-is) and transcribe on-device: `mlx_whisper <audio> --output-dir ~/.cache/watch/<id> --output-format vtt` (flags per `mlx_whisper --help` if rejected; the tool is installed by esetup — if missing, say so and point at `setup.sh` rather than installing it yourself).
+   - **YouTube** — `yt-dlp --skip-download --write-subs --write-auto-subs --sub-langs "<lang>.*" --sub-format vtt -P ~/.cache/watch/<id> -o transcript <url>` where `<lang>` is the video's language (default `en`). Manual subs beat auto subs when both land.
+   - **No captions, or local file** — a Verified Transcript already in hand makes ASR pure waste: use it and skip this branch. Otherwise obtain audio (`yt-dlp -x -P ~/.cache/watch/<id> -o audio <url>`; a local file is used as-is) and transcribe on-device: `mlx_whisper <audio> --output-dir ~/.cache/watch/<id> --output-format vtt` (flags per `mlx_whisper --help` if rejected; the tool is installed by esetup — if missing, say so and point at `setup.sh` rather than installing it yourself).
 
    Done when the cache dir holds a transcript — or you have told the user the video has no obtainable transcript and stopped.
 
