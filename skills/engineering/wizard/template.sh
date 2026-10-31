@@ -64,9 +64,20 @@ note() { printf '  %s%s%s\n' "$DIM" "$1" "$RESET"; }
 warn() { printf '  %s⚠ %s%s\n' "$YELLOW" "$1" "$RESET"; }
 
 # open_url URL opens it in the human's browser, cross-platform incl. WSL.
+# A set $BROWSER (the convention gh, Python's webbrowser and xdg-open honour)
+# takes over: one command, given the URL as its only argument. If it fails,
+# its reason is shown and no other browser is tried; the human chose this one.
 open_url() {
-  local url="$1"
+  local url="$1" errfile
   printf '  %s↗ opening%s %s\n' "$GREEN" "$RESET" "$url"
+  if [[ -n "${BROWSER:-}" ]]; then
+    errfile=$(mktemp)
+    if ! "$BROWSER" "$url" >/dev/null 2>"$errfile"; then
+      [[ -s "$errfile" ]] && note "$(<"$errfile")"
+      warn "couldn't open a browser, so visit it manually: $url"
+    fi
+    rm -f "$errfile"; return 0
+  fi
   { if   command -v wslview     >/dev/null 2>&1; then wslview "$url"
     elif command -v explorer.exe >/dev/null 2>&1; then explorer.exe "$url"
     elif command -v xdg-open    >/dev/null 2>&1; then xdg-open "$url"
