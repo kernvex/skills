@@ -1,7 +1,7 @@
 ---
 name: watch
 description: Watch a video — YouTube URL, Loom URL, or local file — by loading its transcript into context to discuss, summarize, or answer questions about it. Use when the user shares a video link and asks about its content, or supplies a verified transcript to check for drift.
-argument-hint: [url-or-file] [verified-transcript-file]
+argument-hint: "[url-or-file] [verified-transcript-file]"
 ---
 
 # Watch
